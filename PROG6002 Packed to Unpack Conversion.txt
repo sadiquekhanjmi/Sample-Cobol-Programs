@@ -1,0 +1,289 @@
+      ******************************************************************
+      * Author: Mohd S Khan
+      * Date:   31/07/2025
+      * Purpose:THIS PROGRAM CONVERTS A FILE HAVING PACKED-DECIMAL DATA
+      *         WITH COMP AND COMP-3 VALUES INTO A FLATTENED STRUCTURE
+      *         HAVING NUMERIC VALUE REPRESENTATION DEFINED IN DATA
+      *         DIVISION POST CONVERSION WRITE THE DATA INTO THE OUTPUT
+      *         FILE.
+      *
+      * Language: COBOL
+      ******************************************************************
+      *Only Mandatory Division in COBOL Program.
+       IDENTIFICATION DIVISION.
+      *Every COBOL Program has a program-id that signifies the Prog name
+       PROGRAM-ID. PROG0002.
+      *Environment Division signifies the files used as input and output
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *****************************************************************
+      * INPUT-FILE                                                    *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT INFILE ASSIGN TO PACKED
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS INFILE-STATUS.
+      *****************************************************************
+      * OUTPUT-FILE                                                   *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT OUTFILE ASSIGN TO UNPACKED
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS OUTFILE-STATUS.
+      *                                                               *
+       DATA DIVISION.
+       FILE SECTION.
+      ****************************************************************
+      *FILE DESCRIPTOR FOR INPUT FILE
+      ****************************************************************
+      *                                                               *
+       FD INFILE
+           RECORD 10
+           BLOCK CONTAINS 0 RECORDS
+           DATA RECORD RECINFILE.
+      *                                                               *
+       01 RECINFILE                        PIC X(10).
+      *                                                               *
+      ****************************************************************
+      *FILE DESCRIPTOR FOR OUTPUT FILE
+      ****************************************************************
+       FD OUTFILE
+           RECORD 19
+           BLOCK CONTAINS 0 RECORDS
+           LABEL RECORD OMITTED.
+      *                                                               *
+       01 RECOUTFILE                       PIC X(19).
+      *                                                               *
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *Working Storage Variables Or Temp Variables used in Program   *
+      ****************************************************************
+      *Record layout for input file showing Comp-3 data type
+       01 COLL-REC.
+          05 RE-INS            PIC S9(3) COMP-3 VALUE ZEROES.
+          05 RENEWAL-CODE      PIC S9(3) COMP-3 VALUE ZEROES.
+          05 INSTALMENT-CODE   PIC S9(1) COMP-3 VALUE ZEROES.
+          05 CHECK-DIGIT       PIC X VALUE SPACES.
+          05 SUM-INSD          PIC S9(7) COMP-3 VALUE ZEROES.
+
+      *Record layout for output file showing flattened layout
+       01 COLL-REC-X.
+          05 RE-INS-X            PIC -9(3).
+          05 RENEWAL-CODE-X      PIC -9(3).
+          05 INSTALMENT-CODE-X   PIC -9(1).
+          05 CHECK-DIGIT-X       PIC  X.
+          05 SUM-INSD-X          PIC -9(7).
+
+      ****************************************************************
+      *File Status of the files used in Program                      *
+      ****************************************************************
+       01 INFILE-STATUS                     PIC XX   VALUE SPACES.
+          88 INFILE-OK                               VALUE '00'.
+          88 INFILE-EOF                              VALUE '10'.
+       01 OUTFILE-STATUS                    PIC XX   VALUE SPACES.
+          88 OUTFILE-OK                              VALUE '00'.
+          88 OUTFILE-EOF                             VALUE '10'.
+      ****************************************************************
+      *Program Name and Abend Return Code in case of Program failure *
+      ****************************************************************
+       01 STAT.
+          05 STAT-PROGRAM                   PIC X(8)   VALUE 'PROG6002'.
+          05 STAT-ABEND-CODE                PIC S99    VALUE +16.
+      ****************************************************************
+      *Record count for Input and Output file used in Program        *
+      ****************************************************************
+       01 INFILE-TOT            PIC 9(9) VALUE ZEROES.
+       01 OUTFILE-TOT           PIC 9(9) VALUE ZEROES.
+      ****************************************************************
+      *Procedure Division where Actual Logic is Implemented          *
+      ****************************************************************
+       PROCEDURE DIVISION.
+      ****************************************************************
+      * Main Program Section                                         *
+      ****************************************************************
+       0000-MAINLINE SECTION.
+      *----------------------
+      *
+           PERFORM 1000-START
+              THRU 1000-START-EXIT
+      *
+           PERFORM 2000-PROCESS
+              THRU 2000-PROCESS-EXIT
+              UNTIL INFILE-EOF
+      *
+           PERFORM 8000-WRAP
+              THRU 8000-WRAP-EXIT.
+      *
+           STOP RUN.
+      *
+       0000-MAINLINE-EXIT.
+           EXIT.
+      ****************************************************************
+      *In This Section Open the Files and Read the Input files       *
+      ****************************************************************
+       1000-START SECTION.
+      *-------------------
+      *
+      *
+           PERFORM 1100-OPEN-FILES
+              THRU 1100-OPEN-FILES-EXIT
+
+           PERFORM 1200-READ-INFILE
+              THRU 1200-READ-INFILE-EXIT.
+      *
+       1000-START-EXIT.
+           EXIT.
+      ****************************************************************
+      *Open the Files used in Program                                *
+      ****************************************************************
+       1100-OPEN-FILES SECTION.
+      *------------------------
+      *
+           OPEN INPUT INFILE
+           IF NOT INFILE-OK
+              DISPLAY 'ERR OPEN INFILE ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           OPEN OUTPUT OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY 'ERR OPEN OUTFILE ' OUTFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF.
+      *
+       1100-OPEN-FILES-EXIT.
+           EXIT.
+      ****************************************************************
+      *Process the logic                                             *
+      ****************************************************************
+       2000-PROCESS SECTION.
+      *---------------------
+      *
+           INITIALIZE COLL-REC-X.
+
+      *Validate all the Packed Decimal data and populate the NUMERIC
+      *Data Layout having flattened Structure
+
+              IF RE-INS IS NUMERIC
+                 MOVE RE-INS TO RE-INS-X
+              ELSE 
+		 MOVE ZEROES TO RE-INS-X.
+
+              IF RENEWAL-CODE IS NUMERIC
+                 MOVE RENEWAL-CODE TO RENEWAL-CODE-X
+              ELSE 
+                 MOVE ZEROES TO RENEWAL-CODE-X.
+
+              IF INSTALMENT-CODE IS NUMERIC
+                 MOVE INSTALMENT-CODE TO INSTALMENT-CODE-X
+              ELSE 
+                 MOVE ZEROES TO INSTALMENT-CODE-X.
+
+              MOVE CHECK-DIGIT TO CHECK-DIGIT-X.
+
+              IF SUM-INSD IS NUMERIC
+                 MOVE SUM-INSD TO SUM-INSD-X
+              ELSE 
+                 MOVE ZEROES TO SUM-INSD-X.
+
+      *Write the output file with Numeric Structure and increase the
+      *outfile count by +1
+
+              WRITE RECOUTFILE FROM COLL-REC-X.
+              ADD +1 TO OUTFILE-TOT.
+
+           PERFORM 1200-READ-INFILE
+              THRU 1200-READ-INFILE-EXIT.
+      *
+       2000-PROCESS-EXIT.
+           EXIT.
+      ****************************************************************
+      * Close the File and Perform Stat Section                      *
+      ****************************************************************
+       8000-WRAP SECTION.
+      *------------------
+      *
+           CLOSE INFILE
+           IF NOT INFILE-OK
+              DISPLAY ' ERROR CLOSE INFILE  - ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           CLOSE OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY ' ERROR CLOSE OUTFILE - ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           PERFORM 8500-STAT
+              THRU 8500-STAT-EXIT.
+      *
+       8000-WRAP-EXIT.
+           EXIT.
+      ****************************************************************
+      * Stat Section                                                 *
+      ****************************************************************
+       8500-STAT SECTION.
+      *--------------------------
+           DISPLAY '============================================'
+           DISPLAY 'PROGRAM END   ' STAT-PROGRAM
+           DISPLAY 'INFILE READ   ...: ' INFILE-TOT
+           DISPLAY 'OUTFILE WRITE ...: ' OUTFILE-TOT
+           DISPLAY '============================================'.
+      *
+       8500-STAT-EXIT.
+           EXIT.
+      ****************************************************************
+      * Abend Section                                                *
+      ****************************************************************
+       9000-ABEND SECTION.
+      *-------------------
+      *
+           PERFORM 8500-STAT
+              THRU 8500-STAT-EXIT
+      *
+           CLOSE INFILE
+                 OUTFILE
+      *
+           MOVE STAT-ABEND-CODE           TO RETURN-CODE
+           STOP RUN.
+      *
+       9000-ABEND-EXIT.
+           EXIT.
+      ****************************************************************
+      *Read the Input File into the Input-Record Layout              *
+      ****************************************************************
+       1200-READ-INFILE SECTION.
+      *-------------------------
+      *
+           INITIALIZE COLL-REC
+           READ INFILE INTO COLL-REC
+      *
+           EVALUATE TRUE
+               WHEN INFILE-OK
+                    ADD +1                  TO INFILE-TOT
+               WHEN INFILE-EOF
+                    CONTINUE
+               WHEN OTHER
+              DISPLAY 'ERROR READ INFILE - ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-EVALUATE.
+      *
+       1200-READ-INFILE-EXIT.
+           EXIT.
+      *
+

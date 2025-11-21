@@ -1,0 +1,150 @@
+      ******************************************************************
+      * Author: Mohd S Khan
+      * Date: 31/07/2025
+      * Purpose: This Program will compare records in two input files
+      *          and write the matching records in the Output File. The
+      *          two input files are of same data record length having
+      *          80 bytes and key is of 10 bytes. In this program only
+      *          10 byte key is assumed as actual data and rest 70 bytes
+      *          are considered as Spaces.
+      * Tectonics: COBOL
+      ******************************************************************
+      *Only Mandatory Division in COBOL Program.
+       IDENTIFICATION DIVISION.
+      *Every COBOL Program has a program-id that signifies the Prog name
+       PROGRAM-ID. COMPARE-FILES.
+
+      *Environment Division signifies the files used as input and output
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *First input file physical file name is FILE1.txt and logical
+      *name in program is INFILE1
+           SELECT INFILE1 ASSIGN TO 'FILE1.txt'
+      *Organization shows the way the data is organized in the file
+           ORGANIZATION IS SEQUENTIAL.
+
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Second input file physical file name is FILE2.txt and logical
+      *name in program is INFILE2
+           SELECT INFILE2 ASSIGN TO 'FILE2.txt'
+      *Organization shows the way the data is organized in the file
+           ORGANIZATION IS SEQUENTIAL.
+
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Output file physical file name is FILE3.txt and logical
+      *name in program is OUTFILE
+           SELECT OUTFILE ASSIGN TO 'FILE3.txt'
+      *Organization shows the way the data is organized in the file
+           ORGANIZATION IS SEQUENTIAL.
+
+       DATA DIVISION.
+      *Here Stucture of All the files used in program is defined
+       FILE SECTION.
+       FD INFILE1.
+      *Input File1 having the Key of 10 bytes as EMP-ID1 and rest all Spaces
+       01 INPUT-RECORD1.
+          05 EMP-ID1       PIC X(10).
+          05 FILLER        PIC X(70).
+       FD INFILE2.
+      *Input File2 having the Key of 10 bytes as EMP-ID2 and rest all Spaces
+       01 INPUT-RECORD2.
+          05 EMP-ID2       PIC X(10).
+          05 FILLER        PIC X(70).
+
+       FD OUTFILE.
+      *Output file having 10 bytes allocated as EMP-ID3 for matching RECORDS
+      *and rest all Spaces
+       01 OUTPUT-RECORD.
+          05 EMP-ID3       PIC X(10).
+          05 FILLER        PIC X(70).
+
+       WORKING-STORAGE SECTION.
+      *Temp variables defined to copature the End of both input FILE
+      *Initailzed to value N.
+          01 EOF-FILE1         PIC X VALUE 'N'.
+          01 EOF-FILE2         PIC X VALUE 'N'.
+      *Variables for holding the input and output file count
+       01 INFILE1-TOT            PIC 9(9) VALUE ZEROES.
+       01 INFILE2-TOT            PIC 9(9) VALUE ZEROES.
+       01 OUTFILE-TOT            PIC 9(9) VALUE ZEROES.
+
+       PROCEDURE DIVISION.
+      *Here in Procedure Division the logic is implemented.
+      *Open both the Input file and Outfile
+          OPEN INPUT INFILE1
+               INPUT INFILE2
+               OUTPUT OUTFILE.
+
+      *Perform the below logic until End of Input File1 and Input File2
+       PERFORM UNTIL EOF-FILE1 = 'Y' AND EOF-FILE2 = 'Y'
+      *Read the Input file1 if end of file is reached set EOF variable
+      *to Y
+          READ INFILE1
+             AT END
+                MOVE 'Y' TO EOF-FILE1
+      *If not at end of file Add +1 to read count
+             NOT AT END
+                ADD +1 TO INFILE1-TOT
+          END-READ
+
+      *Read the Input file2 if end of file is reached set EOF variable
+      *to Y
+          READ INFILE2
+             AT END
+                MOVE 'Y' TO EOF-FILE2
+      *If not at end of file Add +1 to read count
+             NOT AT END
+                ADD +1 TO INFILE2-TOT
+          END-READ
+     
+      *If not at end of file1 and file2 doa compare of record key
+      *If matching then move the input1 record to output file RECORD and
+      *Write the Output File, increase the output file count by +1
+
+           IF EOF-FILE1 = 'N' AND EOF-FILE2 = 'N'
+              IF EMP-ID1 = EMP-ID2
+                 MOVE INPUT-RECORD1 TO OUTPUT-RECORD
+                 WRITE OUTPUT-RECORD
+                 ADD +1 TO OUTFILE-TOT
+              END-IF
+      *If Input file1 Key is less than input file2 key again read the
+      *Input File1 and increase the read count by +1
+              IF EMP-ID1 < EMP-ID2
+                 READ INFILE1
+                    AT END
+                       MOVE 'Y' TO EOF-FILE1
+                    NOT AT END
+                       ADD +1 TO INFILE1-TOT
+                 END-READ
+              END-IF
+      *If Input file1 Key is greater than input file2 key again read the
+      *Input File2 and increase the read count by +1
+              IF EMP-ID1 > EMP-ID2
+                 READ INFILE2
+                    AT END
+                       MOVE 'Y' TO EOF-FILE2
+                    NOT AT END
+                       ADD +1 TO INFILE2-TOT
+                 END-READ
+              END-IF
+           END-IF
+
+       END-PERFORM.
+
+      *Close all the files used in the program
+       CLOSE INFILE1
+             INFILE2
+             OUTFILE.
+
+       DISPLAY 'TOTAL-INPUT1-REC :' INFILE1-TOT.
+       DISPLAY 'TOTAL-INPUT2-REC :' INFILE1-TOT.
+       DISPLAY 'TOTAL-OUTPUT-REC :' OUTFILE-TOT.
+
+       STOP RUN.
+
+       END PROGRAM COMPARE-FILES.

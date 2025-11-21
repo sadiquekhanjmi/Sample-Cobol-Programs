@@ -1,0 +1,332 @@
+      ******************************************************************
+      * Author: Mohd S Khan
+      * Date:31/07/2025
+      * Purpose:Create a COBOL program to accept Age and amount of
+      * deposit from the input file and calculate the returns with the
+      * interest based on the age (Returns = Amount + interest).
+      * If Minor Age (Age <18) 8% of intrest on Amount is given,
+      * If Major Age (Age is 18 to 30) 10% of intrest on Amount is given,
+      * If Middle Age (Age 31 to 40 )  12% of intrest on Amount is given,
+      * If Old Age (Age is 41 to 60) 14% of intrest on Amount is given
+      * And If Sr. Citizen (Above 60 ) 16% of intrest on Amount is given.
+      * Write the Age, Amount and Returns in the Output file.
+      * Language: COBOL
+      ******************************************************************
+      *Only Mandatory Division in COBOL Program.
+       IDENTIFICATION DIVISION.
+      *Every COBOL Program has a program-id that signifies the Prog name
+       PROGRAM-ID. PROG0001.
+      
+      *Environment Division signifies the files used as input and output
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *****************************************************************
+      * INPUT-FILE                                                    *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT INFILE ASSIGN TO INPUT
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS INFILE-STATUS.
+      *****************************************************************
+      * OUTPUT-FILE                                                   *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT OUTFILE ASSIGN TO RETURNS
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS OUTFILE-STATUS.
+      *                                                               *
+       DATA DIVISION.
+       FILE SECTION.
+      ****************************************************************
+      *FILE DESCRIPTOR FOR INPUT FILE
+      ****************************************************************
+      *                                                               *
+       FD INFILE
+           RECORD 80
+           BLOCK CONTAINS 0 RECORDS
+           DATA RECORD REC-INFILE.
+      *                                                               *
+       01 REC-INFILE                       PIC X(80).
+      *                                                               *
+      ****************************************************************
+      *FILE DESCRIPTOR FOR OUTPUT FILE
+      ****************************************************************
+       FD OUTFILE
+           RECORD 80
+           BLOCK CONTAINS 0 RECORDS
+           LABEL RECORD OMITTED.
+      *                                                               *
+       01 REC-OUTFILE                      PIC X(80).
+      *                                                               *
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *Working Storage Variables Or Temp Variables used in Program   *
+      ****************************************************************
+      *Input File having record layout with Age and amount
+       01 INPUT-RECORD.
+          05 INPUT-AGE        PIC 9(3).
+          05 FILLER           PIC X.
+          05 INPUT-AMOUNT     PIC 9(5).
+          05 FILLER           PIC X(71) VALUE SPACES.
+ 
+      *Output File having record layout with Age, Amount and Returns
+       01 OUTPUT-RECORD.
+          05 OUTPUT-AGE       PIC 9(3).
+          05 FILLER           PIC X.
+          05 OUTPUT-AMOUNT    PIC 9(5).
+          05 FILLER           PIC X.
+          05 RETURNS          PIC 9(7).9(5).
+          05 FILLERS          PIC X(57) VALUE SPACES.
+
+      *Condition Name Level is used to Identify Status of Age
+       01 WS-INPUT-AGE     PIC 9(3).
+          88 MINOR         VALUE IS 001 THRU 017.
+          88 MAJOR         VALUE IS 018 THRU 030.
+          88 MIDDLE-AGE    VALUE IS 031 THRU 040.
+          88 OLD-AGE       VALUE IS 041 THRU 060.
+          88 SR-CITIZEN    VALUE IS 061 THRU 999.
+      ****************************************************************
+      *File Status of the files used in Program                      *
+      ****************************************************************
+       01 INFILE-STATUS                     PIC XX   VALUE SPACES.
+          88 INFILE-OK                               VALUE '00'.
+          88 INFILE-EOF                              VALUE '10'.
+       01 OUTFILE-STATUS                    PIC XX   VALUE SPACES.
+          88 OUTFILE-OK                              VALUE '00'.
+          88 OUTFILE-EOF                             VALUE '10'.
+
+      ****************************************************************
+      *Program Name and Abend Return Code in case of Program failure *
+      ****************************************************************
+       01 STATS.
+          05 STAT-PROGRAM                   PIC X(8)   VALUE 'PROG0001'.
+          05 STAT-ABEND-CODE                PIC S99    VALUE +16.
+      ****************************************************************
+      *Record count for Input and Output file used in Program        *
+      ****************************************************************
+       01 INFILE-TOT            PIC 9(10) VALUE ZEROES.
+       01 OUTFILE-TOT           PIC 9(10) VALUE ZEROES.
+      ****************************************************************
+      * Procedure Division where Actual Logic is Implemented         *
+      ****************************************************************
+       PROCEDURE DIVISION.
+      ****************************************************************
+      * Main Program Section                                         *
+      ****************************************************************
+       0000-MAINLINE SECTION.
+      *----------------------
+      *
+           PERFORM 1000-START
+              THRU 1000-START-EXIT
+      *
+           PERFORM 2000-PROCESS
+              THRU 2000-PROCESS-EXIT
+              UNTIL INFILE-EOF
+      *
+           PERFORM 8000-WRAP
+              THRU 8000-WRAP-EXIT.
+      *
+           STOP RUN.
+      *
+       0000-MAINLINE-EXIT.
+           EXIT.
+      
+      ****************************************************************
+      *In This Section Open the Files and Read the Input files       *
+      ****************************************************************
+       1000-START SECTION.
+      *-------------------
+      *
+           PERFORM 1100-OPEN-FILES
+              THRU 1100-OPEN-FILES-EXIT
+
+           PERFORM 1200-READ-INFILE
+              THRU 1200-READ-INFILE-EXIT.
+      *
+       1000-START-EXIT.
+           EXIT.
+
+      ****************************************************************
+      *Open the Files used in Program                                *
+      ****************************************************************
+       1100-OPEN-FILES SECTION.
+      *------------------------
+      *
+           OPEN INPUT INFILE
+           IF NOT INFILE-OK
+              DISPLAY 'ERROR OPENING INPUT FILE ' INFILE-STATUS
+              PERFORM 8500-ABEND
+                 THRU 8500-ABEND-EXIT
+           END-IF
+      *
+           OPEN OUTPUT OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY 'ERROR OPENING OUTPUT FILE' OUTFILE-STATUS
+              PERFORM 8500-ABEND
+                 THRU 8500-ABEND-EXIT
+           END-IF.
+      *
+       1100-OPEN-FILES-EXIT.
+           EXIT.
+
+      ****************************************************************
+      *Process the logic                                             *
+      ****************************************************************
+       2000-PROCESS SECTION.
+      *---------------------
+      *
+           INITIALIZE OUTPUT-RECORD.
+           IF INPUT-AGE IS NUMERIC
+              MOVE INPUT-AGE TO WS-INPUT-AGE
+                                OUTPUT-AGE
+           END-IF.
+
+           IF INPUT-AMOUNT IS NUMERIC
+              MOVE INPUT-AMOUNT TO OUTPUT-AMOUNT
+           END-IF.
+
+      *Compute the returns based on the below formula
+           IF MINOR
+              COMPUTE RETURNS = INPUT-AMOUNT + ( 0.08 * INPUT-AMOUNT)
+           END-IF.
+
+           IF MAJOR
+              COMPUTE RETURNS = INPUT-AMOUNT + ( 0.10 * INPUT-AMOUNT)
+           END-IF.
+
+           IF MIDDLE-AGE
+              COMPUTE RETURNS = INPUT-AMOUNT + ( 0.12 * INPUT-AMOUNT)
+           END-IF.
+
+           IF OLD-AGE
+              COMPUTE RETURNS = INPUT-AMOUNT + ( 0.14 * INPUT-AMOUNT)
+           END-IF.
+
+           IF SR-CITIZEN
+              COMPUTE RETURNS = INPUT-AMOUNT + ( 0.16 * INPUT-AMOUNT)
+           END-IF.
+
+      * Write the Output file record and increase the record count by +1
+           WRITE REC-OUTFILE FROM OUTPUT-RECORD.
+           ADD +1 TO OUTFILE-TOT
+
+           PERFORM 1200-READ-INFILE
+              THRU 1200-READ-INFILE-EXIT.
+      *
+       2000-PROCESS-EXIT.
+           EXIT.
+
+      ****************************************************************
+      * Close the File and Perform Stat Section                      *
+      ****************************************************************
+       8000-WRAP SECTION.
+      *------------------
+      *
+           CLOSE INFILE
+           IF NOT INFILE-OK
+              DISPLAY ' ERROR CLOSE INFILE  - ' INFILE-STATUS
+              PERFORM 8500-ABEND
+                 THRU 8500-ABEND-EXIT
+           END-IF
+      *
+           CLOSE OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY ' ERROR CLOSE OUTFILE - ' INFILE-STATUS
+              PERFORM 8500-ABEND
+                 THRU 8500-ABEND-EXIT
+           END-IF
+      *
+           PERFORM 9000-STAT
+              THRU 9000-STAT-EXIT.
+      *
+       8000-WRAP-EXIT.
+           EXIT.
+      ****************************************************************
+      * Abend Section                                                *
+      ****************************************************************
+       8500-ABEND SECTION.
+      *-------------------
+      *
+           PERFORM 9000-STAT
+              THRU 9000-STAT-EXIT
+      *
+           CLOSE INFILE
+                 OUTFILE
+      *
+           MOVE STAT-ABEND-CODE           TO RETURN-CODE
+           STOP RUN.
+      *
+       8500-ABEND-EXIT.
+           EXIT.
+
+      ****************************************************************
+      * Stat Section                                                 *
+      ****************************************************************
+       9000-STAT SECTION.
+      *-------------------------
+           DISPLAY '============================================'
+           DISPLAY 'PROGRAM END   ' STAT-PROGRAM
+           DISPLAY 'TOTAL-INPUT-REC :' INFILE-TOT
+           DISPLAY 'TOTAL-OUTPUT-REC :' OUTFILE-TOT
+           DISPLAY '============================================'.
+      *
+       9000-STAT-EXIT.
+           EXIT.
+
+      ****************************************************************
+      *Read the Input File into the Input-Record Layout              *
+      ****************************************************************
+       1200-READ-INFILE SECTION.
+      *-------------------------
+      *
+           INITIALIZE INPUT-RECORD
+           READ INFILE INTO INPUT-RECORD
+      *
+           EVALUATE TRUE
+               WHEN INFILE-OK
+                    ADD +1                  TO INFILE-TOT
+               WHEN INFILE-EOF
+                    CONTINUE
+               WHEN OTHER
+              DISPLAY 'ERROR READING INFILE' INFILE-STATUS
+
+              PERFORM 8500-ABEND
+                 THRU 8500-ABEND-EXIT
+           END-EVALUATE.
+      *
+       1200-READ-INFILE-EXIT.
+           EXIT.
+      *****************************************************************
+      *Program Ends Here                                              *
+      *****************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            

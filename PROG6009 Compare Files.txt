@@ -1,0 +1,342 @@
+      ******************************************************************
+      * Author:
+      * Date: 31/07/2024
+      * Purpose: This Program will compare records in two input files
+      *          and write the matching records in the Output File. The
+      *          two input files are of same data record length having
+      *          80 bytes and key is of 10 bytes. In this program only
+      *          10 byte key is assumed as actual data and rest 70 bytes
+      *          are considered as Spaces.
+      * Tectonics: cobc
+      ******************************************************************
+      *Only Mandatory Division in COBOL Program.
+       IDENTIFICATION DIVISION.
+      *Every COBOL Program has a program-id that signifies the Prog name
+       PROGRAM-ID. PROG6001.
+      *Environment Division signifies the files used as input and output
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *****************************************************************
+      * INPUT-FILE-1                                                  *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT INFILE1 ASSIGN TO INPUT1
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS INFILE1-STATUS.
+
+      *****************************************************************
+      * INPUT-FILE-2                                                  *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT INFILE2 ASSIGN TO INPUT2
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS INFILE2-STATUS.
+      *****************************************************************
+      * OUTPUT-FILE                                                   *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT OUTFILE ASSIGN TO OUTPUT1
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS OUTFILE-STATUS.
+      *                                                               *
+       DATA DIVISION.
+       FILE SECTION.
+      ****************************************************************
+      *FILE DESCRIPTOR FOR INPUT FILE1
+      ****************************************************************
+      *                                                               *
+       FD INFILE1
+           RECORD 80
+           BLOCK CONTAINS 0 RECORDS
+           DATA RECORD RECINFILE1.
+      *                                                               *
+       01 RECINFILE1                       PIC X(80).
+      *                                                               *
+      ****************************************************************
+      *FILE DESCRIPTOR FOR INPUT FILE2
+      ****************************************************************
+      *                                                               *
+       FD INFILE2
+           RECORD 80
+           BLOCK CONTAINS 0 RECORDS
+           DATA RECORD RECINFILE2.
+      *                                                               *
+       01 RECINFILE2                       PIC X(80).
+      *                                                               *
+      ****************************************************************
+      *FILE DESCRIPTOR FOR OUTPUT FILE
+      ****************************************************************
+       FD OUTFILE
+           RECORD 80
+           BLOCK CONTAINS 0 RECORDS
+           LABEL RECORD OMITTED.
+      *                                                               *
+       01 RECOUTFILE                       PIC X(80).
+      *                                                               *
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *              WORKING VARIABLES                               *
+      ****************************************************************
+       01 INPUT-RECORD1.
+          05 ID1           PIC X(10).
+          05 FILLER        PIC X(70).
+
+      *Input File2 having the Key of 10 bytes as ID1 and rest all Spaces
+       01 INPUT-RECORD2.
+          05 ID2           PIC X(10).
+          05 FILLER        PIC X(70).
+
+      *Output file having 10 bytes allocated as ID3 for matching RECORDS
+      *and rest all Spaces
+       01 OUTPUT-RECORD.
+          05 ID3           PIC X(10).
+          05 FILLER        PIC X(70).
+      ****************************************************************
+      *File Status of the files used in Programs                     *
+      ****************************************************************
+       01 INFILE1-STATUS                   PIC XX   VALUE SPACES.
+          88 INFILE1-OK                             VALUE '00'.
+          88 INFILE1-EOF                            VALUE '10'.
+       01 INFILE2-STATUS                   PIC XX   VALUE SPACES.
+          88 INFILE2-OK                             VALUE '00'.
+          88 INFILE2-EOF                            VALUE '10'.
+       01 OUTFILE-STATUS                   PIC XX   VALUE SPACES.
+          88 OUTFILE-OK                             VALUE '00'.
+          88 OUTFILE-EOF                            VALUE '10'.
+      ****************************************************************
+      *Program Name and Abend Return Code in case of Program failure *
+      ****************************************************************
+       01 STAT.
+          05 STAT-PROGRAM                  PIC X(8)   VALUE 'PROG6001'.
+          05 STAT-ABEND-CODE               PIC S99    VALUE +16.
+      ****************************************************************
+      *Record count for Input and Output file used in Program        *
+      ****************************************************************
+       01 INFILE1-TOT                      PIC 9(9) VALUE ZEROES.
+       01 INFILE2-TOT                      PIC 9(9) VALUE ZEROES.
+       01 OUTFILE-TOT                      PIC 9(9) VALUE ZEROES.
+      ****************************************************************
+      * Procedure Division where Actual Logic is Implemented         *
+      ****************************************************************
+       PROCEDURE DIVISION.
+      ****************************************************************
+      * Main Program Section                                         *
+      ****************************************************************
+       0000-MAINLINE SECTION.
+      *Perform the Open of Files and Read the input files sequentially
+           PERFORM 1000-START
+              THRU 1000-START-EXIT
+      *Process the matching logic until the end of first input file
+           PERFORM 2000-PROCESS
+              THRU 2000-PROCESS-EXIT
+              UNTIL INFILE1-EOF
+      *Close the file and perform the Stat
+           PERFORM 8000-WRAP
+              THRU 8000-WRAP-EXIT.
+      *
+           STOP RUN.
+      *
+       0000-MAINLINE-EXIT.
+           EXIT.
+      ****************************************************************
+      *In This Section Open the Files and Read the Input files       *
+      ****************************************************************
+       1000-START SECTION.
+      *-------------------
+      *
+           PERFORM 1100-OPEN-FILES
+              THRU 1100-OPEN-FILES-EXIT
+
+           PERFORM 1200-READ-INFILE1
+              THRU 1200-READ-INFILE1-EXIT.
+      *
+       1000-START-EXIT.
+           EXIT.
+      ****************************************************************
+      *Open the Files used in Program                                *
+      ****************************************************************
+       1100-OPEN-FILES SECTION.
+      *------------------------
+      *
+           OPEN INPUT INFILE1
+           IF NOT INFILE1-OK
+              DISPLAY 'ERR OPEN INFILE1 ' INFILE1-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           OPEN INPUT INFILE2
+           IF NOT INFILE2-OK
+              DISPLAY 'ERR OPEN INFILE2 ' INFILE2-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           OPEN OUTPUT OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY 'ERR OPEN OUTFILE ' OUTFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF.
+      *
+       1100-OPEN-FILES-EXIT.
+           EXIT.
+      ****************************************************************
+      *Process the logic                                             *
+      ****************************************************************
+       2000-PROCESS SECTION.
+      *---------------------
+      *Perform the para to read the second input file until there is
+      *match on key or until end of second input file
+
+           PERFORM 1300-READ-INFILE2
+              THRU 1300-READ-INFILE2-EXIT
+              UNTIL ID1 = ID2 OR INFILE2-EOF
+
+      *If a match is found then initialize the Output file record
+      *and move the record from input1 file to output file
+      *write the output file and increase the counter
+      *else read the input2 file again till end of file or until there
+      *is match
+
+           IF ID1 = ID2
+              INITIALIZE OUTPUT-RECORD
+              MOVE ID1 TO ID3
+              WRITE RECOUTFILE FROM OUTPUT-RECORD
+              ADD +1 TO OUTFILE-TOT
+           ELSE
+              PERFORM 1300-READ-INFILE2
+                 THRU 1300-READ-INFILE2-EXIT
+                 UNTIL ID1 = ID2 OR INFILE2-EOF
+           END-IF
+
+      *Read the input1 file again for the next record
+           PERFORM 1200-READ-INFILE1
+              THRU 1200-READ-INFILE1-EXIT.
+      *
+       2000-PROCESS-EXIT.
+           EXIT.
+      ****************************************************************
+      * Close the File and Stat Section                              *
+      ****************************************************************
+       8000-WRAP SECTION.
+      *
+           CLOSE INFILE1
+           IF NOT INFILE1-OK
+              DISPLAY ' ERROR CLOSE INFILE1  - ' INFILE1-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           CLOSE INFILE2
+           IF NOT INFILE2-OK
+              DISPLAY ' ERROR CLOSE INFILE2  - ' INFILE2-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           CLOSE OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY ' ERROR CLOSE OUTFILE - ' OUTFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           PERFORM 8500-STAT
+              THRU 8500-STAT-EXIT.
+      *
+       8000-WRAP-EXIT.
+           EXIT.
+      ****************************************************************
+      *Stat Section                                                  *
+      ****************************************************************
+       8500-STAT SECTION.
+      *--------------------------
+           DISPLAY '============================================'
+           DISPLAY 'PROGRAM END :' STAT-PROGRAM
+           DISPLAY 'TOTAL-INPUT1-REC :' INFILE1-TOT
+           DISPLAY 'TOTAL-INPUT2-REC :' INFILE2-TOT
+           DISPLAY 'TOTAL-OUTPUT-REC :' OUTFILE-TOT
+           DISPLAY '============================================'.
+      *
+       8500-STAT-EXIT.
+           EXIT.
+      ****************************************************************
+      * Abend Section                                                *
+      ****************************************************************
+       9000-ABEND SECTION.
+      *-------------------
+      *
+           PERFORM 8500-STAT
+              THRU 8500-STAT-EXIT
+      *
+           CLOSE INFILE1
+                 INFILE2
+                 OUTFILE
+      *
+           MOVE STAT-ABEND-CODE           TO RETURN-CODE
+           STOP RUN.
+      *
+       9000-ABEND-EXIT.
+           EXIT.
+      ****************************************************************
+      *Read the Input File1 into the Input-Record1 Layout            *
+      ****************************************************************
+       1200-READ-INFILE1 SECTION.
+      *-------------------------
+      *
+           INITIALIZE INPUT-RECORD1
+
+           READ INFILE1 INTO INPUT-RECORD1
+      *
+           EVALUATE TRUE
+               WHEN INFILE1-OK
+                    ADD +1                  TO INFILE1-TOT
+               WHEN INFILE1-EOF
+                    CONTINUE
+               WHEN OTHER
+              DISPLAY 'ERROR READ INFILE1 - ' INFILE1-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-EVALUATE.
+      *
+       1200-READ-INFILE1-EXIT.
+           EXIT.
+      *
+      ****************************************************************
+      *Read the Input File2 into the Input-Record2 Layout            *
+      ****************************************************************
+       1300-READ-INFILE2 SECTION.
+      *-------------------------
+      *
+           INITIALIZE INPUT-RECORD2
+
+           READ INFILE2 INTO INPUT-RECORD2
+           EVALUATE TRUE
+               WHEN INFILE2-OK
+                    ADD +1                  TO INFILE2-TOT
+               WHEN INFILE2-EOF
+                    CONTINUE
+               WHEN OTHER
+              DISPLAY 'ERROR READ INFILE2 - ' INFILE2-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-EVALUATE.
+      *
+       1300-READ-INFILE2-EXIT.
+           EXIT.
+      *
+

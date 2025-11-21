@@ -1,0 +1,272 @@
+      ******************************************************************
+      * Author:
+      * Date:31/07/2025
+      * Purpose:Create a COBOL program to read the string record
+      * from the input sequential file and then reverse the string
+      * Write the reversed string record into the Output sequential file
+      * Tectonics: cobc
+      ******************************************************************
+      *Only Mandatory Division in COBOL Program.
+       IDENTIFICATION DIVISION.
+      *Every COBOL Program has a program-id that signifies the Prog name
+       PROGRAM-ID. PROG6004.
+      *Environment Division signifies the files used as input and output
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+
+      *****************************************************************
+      * INPUT-FILE                                                    *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT INFILE ASSIGN TO INPUT1
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS INFILE-STATUS.
+
+      *****************************************************************
+      * OUTPUT-FILE                                                   *
+      *****************************************************************
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+      *Organization shows the way the data is organized in the file
+      *****************************************************************
+      *                                                               *
+            SELECT OUTFILE ASSIGN TO RETURNS
+            ORGANIZATION IS SEQUENTIAL
+            FILE STATUS IS OUTFILE-STATUS.
+      *                                                               *
+       DATA DIVISION.
+       FILE SECTION.
+      ****************************************************************
+      *FILE DESCRIPTOR FOR INPUT FILE
+      ****************************************************************
+      *                                                               *
+       FD INFILE
+           RECORD 80
+           BLOCK CONTAINS 0 RECORDS
+           DATA RECORD RECINFILE.
+      *                                                               *
+       01 RECINFILE                        PIC X(80).
+      *                                                               *
+      ****************************************************************
+      *FILE DESCRIPTOR FOR OUTPUT FILE
+      ****************************************************************
+       FD OUTFILE
+           RECORD 80
+           BLOCK CONTAINS 0 RECORDS
+           LABEL RECORD OMITTED.
+      *                                                               *
+       01 RECOUTFILE                       PIC X(80).
+      *                                                               *
+       WORKING-STORAGE SECTION.
+      ****************************************************************
+      *              WORKING VARIABLES                               *
+      ****************************************************************
+      *Input file Layout
+       01 INPUT-RECORD.
+          05 INPUT-STRING                  PIC X(80).
+
+      *Output file Layout
+       01 OUTPUT-RECORD.
+          05 REVERSED-STRING               PIC X(80).
+      *Temp Variables used in Program
+       01 STRING-LENGTH                    PIC 9(3).
+       01 WS-I                             PIC 9(3).
+       01 WS-J                             PIC 9(3).
+      ****************************************************************
+      *File Status of the files used in Programs                     *
+      ****************************************************************
+       01 INFILE-STATUS                    PIC XX   VALUE SPACES.
+          88 INFILE-OK                              VALUE '00'.
+          88 INFILE-EOF                             VALUE '10'.
+       01 OUTFILE-STATUS                   PIC XX   VALUE SPACES.
+          88 OUTFILE-OK                             VALUE '00'.
+          88 OUTFILE-EOF                            VALUE '10'.
+      ****************************************************************
+      *Program Name and Abend Return Code in case of Program failure *
+      ****************************************************************
+       01 STAT.
+          05 STAT-PROGRAM                  PIC X(8)   VALUE 'PROG6004'.
+          05 STAT-ABEND-CODE               PIC S99    VALUE +16.
+      ****************************************************************
+      *Record count for Input and Output file used in Program        *
+      ****************************************************************
+       01 INFILE-TOT                       PIC 9(9) VALUE ZEROES.
+       01 OUTFILE-TOT                      PIC 9(9) VALUE ZEROES.
+      ****************************************************************
+      * Procedure Division where Actual Logic is Implemented         *
+      ****************************************************************
+       PROCEDURE DIVISION.
+      ****************************************************************
+      * Main Program Section                                         *
+      ****************************************************************
+       0000-MAINLINE SECTION.
+      *
+           PERFORM 1000-START
+              THRU 1000-START-EXIT
+      *
+           PERFORM 2000-PROCESS
+              THRU 2000-PROCESS-EXIT
+              UNTIL INFILE-EOF
+      *
+           PERFORM 8000-WRAP
+              THRU 8000-WRAP-EXIT.
+      *
+           STOP RUN.
+      *
+       0000-MAINLINE-EXIT.
+           EXIT.
+      ****************************************************************
+      *In This Section Open the Files and Read the Input files       *
+      ****************************************************************
+       1000-START SECTION.
+      *-------------------
+      *
+           PERFORM 1100-OPEN-FILES
+              THRU 1100-OPEN-FILES-EXIT.
+
+           PERFORM 1200-READ-INFILE
+              THRU 1200-READ-INFILE-EXIT.
+      *
+       1000-START-EXIT.
+           EXIT.
+      ****************************************************************
+      *Open the Files used in Program                                *
+      ****************************************************************
+       1100-OPEN-FILES SECTION.
+      *------------------------
+      *
+           OPEN INPUT INFILE
+
+           IF NOT INFILE-OK
+              DISPLAY 'ERR OPEN INFILE ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           OPEN OUTPUT OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY 'ERR OPEN OUTFILE ' OUTFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF.
+      *
+       1100-OPEN-FILES-EXIT.
+           EXIT.
+      ****************************************************************
+      *Process the logic                                             *
+      ****************************************************************
+       2000-PROCESS SECTION.
+      *---------------------
+      *
+           INITIALIZE OUTPUT-RECORD.
+
+           COMPUTE STRING-LENGTH = FUNCTION LENGTH (INPUT-STRING).
+           MOVE STRING-LENGTH TO WS-I.
+           MOVE 1 TO WS-J.
+
+           PERFORM UNTIL WS-I < WS-J
+
+              MOVE INPUT-STRING(WS-I:1) TO REVERSED-STRING(WS-J:1)
+
+              MOVE INPUT-STRING(WS-J:1) TO REVERSED-STRING(WS-I:1)
+
+              ADD +1 TO WS-J
+
+              SUBTRACT +1 FROM WS-I
+
+           END-PERFORM.
+
+      * Write the Output file record and increase the record count by +1
+
+           WRITE RECOUTFILE FROM OUTPUT-RECORD.
+           ADD +1 TO OUTFILE-TOT
+
+           PERFORM 1200-READ-INFILE
+              THRU 1200-READ-INFILE-EXIT.
+      *
+       2000-PROCESS-EXIT.
+           EXIT.
+      ****************************************************************
+      * Close the File and Stat Section                              *
+      ****************************************************************
+       8000-WRAP SECTION.
+      *
+           CLOSE INFILE
+           IF NOT INFILE-OK
+              DISPLAY ' ERROR CLOSE INFILE  - ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           CLOSE OUTFILE
+           IF NOT OUTFILE-OK
+              DISPLAY ' ERROR CLOSE OUTFILE - ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-IF
+      *
+           PERFORM 8500-STAT
+              THRU 8500-STAT-EXIT.
+      *
+       8000-WRAP-EXIT.
+           EXIT.
+      ****************************************************************
+      *Stat Section                                                  *
+      ****************************************************************
+       8500-STAT SECTION.
+      *--------------------------
+           DISPLAY '============================================'
+           DISPLAY 'PROGRAM END :' STAT-PROGRAM
+           DISPLAY 'TOTAL-INPUT-REC :' INFILE-TOT
+           DISPLAY 'TOTAL-OUTPUT-REC :' OUTFILE-TOT
+           DISPLAY '============================================'.
+      *
+       8500-STAT-EXIT.
+           EXIT.
+      ****************************************************************
+      * Abend Section                                                *
+      ****************************************************************
+       9000-ABEND SECTION.
+      *-------------------
+      *
+           PERFORM 8500-STAT
+              THRU 8500-STAT-EXIT
+      *
+           CLOSE INFILE
+                 OUTFILE
+      *
+           MOVE STAT-ABEND-CODE           TO RETURN-CODE
+           STOP RUN.
+      *
+       9000-ABEND-EXIT.
+           EXIT.
+      ****************************************************************
+      *Read the Input File into the Input-Record Layout              *
+      ****************************************************************
+       1200-READ-INFILE SECTION.
+      *-------------------------
+      *
+           INITIALIZE INPUT-RECORD
+
+           READ INFILE INTO INPUT-RECORD
+      *
+           EVALUATE TRUE
+               WHEN INFILE-OK
+                    ADD +1                  TO INFILE-TOT
+               WHEN INFILE-EOF
+                    CONTINUE
+               WHEN OTHER
+              DISPLAY 'ERROR READ INFILE - ' INFILE-STATUS
+              PERFORM 9000-ABEND
+                 THRU 9000-ABEND-EXIT
+           END-EVALUATE.
+      *
+       1200-READ-INFILE-EXIT.
+           EXIT.
+      *
+

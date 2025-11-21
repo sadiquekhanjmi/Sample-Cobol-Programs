@@ -1,0 +1,137 @@
+      ******************************************************************
+      * Author: Mohd S Khan
+      * Date:22/08/2025
+      * Purpose:THIS PROGRAM CONVERTS A FILE HAVING PACKED-DECIMAL DATA
+      *         WITH COMP AND COMP-3 VALUES INTO A FLATTENED STRUCTURE
+      *         HAVING NUMERIC VALUE REPRESENTATION DEFINED IN DATA
+      *         DIVISION POST CONVERSION WRITE THE DATA INTO THE OUTPUT
+      *         FILE.
+      *
+      * Tectonics: cobc
+      ******************************************************************
+      *Only Mandatory Division in COBOL Program.
+       IDENTIFICATION DIVISION.
+      *Every COBOL Program has a program-id that signifies the Prog name
+       PROGRAM-ID. UNPACK.
+      *Environment Division signifies the files used as input and output
+       ENVIRONMENT DIVISION.
+
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+           SELECT INFILE ASSIGN TO 'PACKED.txt'
+      *Organization shows the way the data is organized in the file
+           ORGANIZATION IS SEQUENTIAL.
+
+      *SELECT defines the file name in the program as a logical name,
+      *ASSIGN shows the file name in the environment as physical file
+           SELECT OUTFILE ASSIGN TO 'UNPACKED.txt'
+
+      *Organization shows the way the data is organized in the file
+           ORGANIZATION IS SEQUENTIAL.
+
+       DATA DIVISION.
+       FILE SECTION.
+      *File descriptor for input file
+       FD INFILE.
+      *Record layout for input file showing Comp-3 data type
+       01  COLL-REC.
+         03 RE-INS            PIC S9(3) COMP-3.
+         03 RENEWAL-CODE      PIC S9(3) COMP-3.
+         03 INSTALMENT-CODE   PIC S9(1) COMP-3.
+         03 CHECK-DIGIT       PIC X.
+         03 SUM-INSD          PIC S9(7) COMP-3.
+
+      *File descriptor for output file
+       FD OUTFILE.
+      *Record layout for output file having Numeric Struture .
+       01  COLL-REC-X.
+         03 RE-INS-X            PIC -9(3).
+         03 RENEWAL-CODE-X      PIC -9(3).
+         03 INSTALMENT-CODE-X   PIC -9(1).
+         03 CHECK-DIGIT-X       PIC  X.
+         03 SUM-INSD-X          PIC -9(7).
+
+       WORKING-STORAGE SECTION.
+      *Variables for holding the input and output file count
+       01 INFILE-TOT            PIC 9(9) VALUE ZEROES.
+       01 OUTFILE-TOT           PIC 9(9) VALUE ZEROES.
+      *End of file flag initialized to Value 'N'
+       01 WS-EOF            PIC X VALUE 'N'.
+
+       PROCEDURE DIVISION.
+       MAIN-PROCEDURE.
+      *Open and Initialize the input and output file layout in INIT Para.
+           PERFORM 1000-INIT-PARA.
+      *Read the input file until End of file and populate the inp layout
+      *Validate the input fields and populate the unpack output fields
+      *having Numeric Structure
+           PERFORM 2000-PROCESS-PARA UNTIL WS-EOF = 'Y'.
+      *Close the file and dispay the count
+           PERFORM 3000-WRAP-PARA.
+      *Stop run will End the Program Execution
+           STOP RUN.
+
+       1000-INIT-PARA.
+      *Open the input and output file.
+           OPEN INPUT INFILE
+                OUTPUT OUTFILE.
+      *Initailze the input and output file layout defined in File Section
+           INITIALISE COLL-REC
+                      COLL-REC-X.
+
+       1000-INIT-PARA-EXIT.
+           EXIT.
+
+       2000-PROCESS-PARA.
+      *Read the input packed file until end of file and increase the
+      *read record count by +1
+           READ INFILE
+                AT END
+                   MOVE 'Y' TO WS-EOF
+                NOT AT END
+                   ADD +1 TO INFILE-TOT
+           END-READ.
+
+      *If Not end of input file validate the input fields and populate
+      *the unpack output feilds.
+           IF WS-EOF = 'N'
+      *Validate all the Packed Decimal data and populate the NUMERIC
+      *Data Layout having flattened Structure
+              IF RE-INS IS NUMERIC
+                 MOVE RE-INS TO RE-INS-X
+              ELSE MOVE ZEROES TO RE-INS-X.
+
+              IF RENEWAL-CODE IS NUMERIC
+                 MOVE RENEWAL-CODE TO RENEWAL-CODE-X
+              ELSE MOVE ZEROES TO RENEWAL-CODE-X.
+
+              IF INSTALMENT-CODE IS NUMERIC
+                 MOVE INSTALMENT-CODE TO INSTALMENT-CODE-X
+              ELSE MOVE ZEROES TO INSTALMENT-CODE-X.
+
+              MOVE CHECK-DIGIT TO CHECK-DIGIT-X.
+
+              IF SUM-INSD IS NUMERIC
+                 MOVE SUM-INSD TO SUM-INSD-X
+              ELSE MOVE ZEROES TO SUM-INSD-X.
+
+      *Write the output file with Numeric Structure and increase the
+      *outfile count by +1
+              WRITE COLL-REC-X.
+              ADD +1 TO OUTFILE-TOT.
+
+       2000-PROCESS-PARA-EXIT.
+           EXIT.
+
+       3000-WRAP-PARA.
+      *Close the input & output file and display the record count.
+           CLOSE INFILE
+                 OUTFILE.
+      *Display the total input and output file records processed.
+           DISPLAY 'TOTAL-INPUT-REC :' INFILE-TOT.
+           DISPLAY 'TOTAL-OUTPUT-REC :' OUTFILE-TOT.
+
+       3000-WRAP-PARA-EXIT.
+           EXIT.
